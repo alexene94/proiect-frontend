@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h2>Users page</h2>
+
+    <input type="text" id="search" placeholder="Search for user">
+
+    <script>
+        document.getElementById('search').addEventListener('keyup', function() {
+            let latestTextSearch = this.value;
+            console.log('word inserted: ', latestTextSearch);
+            console.log(allTheUsers);
+            let searchResultUsers = [];
+
+            searchResultUsers = allTheUsers.filter(us => us.username.toUpperCase().indexOf(latestTextSearch.toUpperCase()) != -1);
+            console.log('searched users are: ', searchResultUsers);
+            drawUsers(searchResultUsers);
+        })
+    </script>
+
+    <table id="tableToBeSorted">
+        <thead>
+            <tr>
+                <th data-sort-order="DESC" onclick="sort(this)">Id</th>
+                <th data-sort-order-username="DESC" onclick="sort(this)">Username</th>
+                <th>Date of birth</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tbody-users-table">
+
+        </tbody>
+    </table>
+
+    <div style="border: 1px solid black; width: 50%;">
+        <h4>Add new user</h4>
+        <input type="text" id="new-user-added" placeholder="Username"><br>
+        <input type="password" id="new-user-password-added" placeholder="Password"><br>
+        <input type="date" id="new-user-dob-added" placeholder="Dob"><br>
+        <button id="save-user">Save user</button>
+    </div>
+
+    <div style="border: 1px solid black; width: 50%;">
+        <h4>Update an existing user</h4>
+        <input type="hidden" id="user-id" placeholder="Id"><br>
+        <input type="text" id="change-username" placeholder="Username"><br>
+        <button id="save-user-edit">Save changes</button>
+    </div>
+
+    <script>
+        let allTheUsers = [];
+        let letters = /[a-zA-Z]+/;
+
+        function compareUsersByIdAsc(a, b) {
+            return a.id - b.id;
+        }
+
+        function compareUsersByIdDesc(a, b) {
+            return b.id - a.id;
+        }
+
+        function compareUsersAlphabetically(a, b) {
+            if (a.username.toUpperCase() < b.username.toUpperCase()) {
+                return -1;
+            }
+            if (a.username.toUpperCase() > b.username.toUpperCase()) {
+                return 1;
+            }
+            return 0;
+        }
+
+        function compareUsersReverseOrder(b, a) {
+            if (a.username.toUpperCase() < b.username.toUpperCase()) {
+                return -1;
+            }
+            if (a.username.toUpperCase() > b.username.toUpperCase()) {
+                return 1;
+            }
+            return 0;
+        }
+
+        function sort(param) {
+            console.log('param: ', param)
+            let theCriterion = param.innerHTML;
+            console.log('the criterion: ', theCriterion);
+            if (theCriterion == 'Id') {
+                let order = param.getAttribute('data-sort-order');
+                if (order == 'DESC') {
+                    allTheUsers.sort(compareUsersByIdDesc);
+                    order = 'ASC';
+                } else if (order == 'ASC') {
+                    allTheUsers.sort(compareUsersByIdAsc);
+                    order = 'DESC';
+                }
+                param.setAttribute('data-sort-order', order);
+            } else {
+                if (theCriterion == 'Username') {
+                    let order2 = param.getAttribute('data-sort-order-username');
+                    if (order2 == 'DESC') {
+                        allTheUsers.sort(compareUsersReverseOrder);
+                        order2 = 'ASC';
+                    } else if (order2 == 'ASC') {
+                        allTheUsers.sort(compareUsersAlphabetically);
+                        order2 = 'DESC';
+                    }
+                    param.setAttribute('data-sort-order-username', order2);
+                }
+            }
+            console.log('all the users sorted: ', allTheUsers);
+            drawUsers(allTheUsers);
+        }
+
+        function User2Tr(user) {
+            if (user.dob) {
+                user.dob = new Date(user.dob);
+            }
+
+            return `<tr id="rand-${user.id}">
+                 <td> ${user.id}</td>
+                 <td>${user.username}</td>
+                 <td>${user.dob == null ? 'No dob for this user' : formatDate(user.dob)}</td>
+                 <td>
+                    <button onclick="clickBtnDelete(${user.id})">Delete</button>
+                    <button onclick="clickBtnEdit(${user.id})">Edit</button>
+                </td>
+                </tr>`;
+
+        }
+
+        // Date --> string 
+        function formatDate(d) {
+            let rezultat = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+            console.log('in interiorul functiei rezultat este: ', rezultat);
+            return rezultat;
+        }
+
+        // let odata = new Date(); // Date
+        // if (odata == null) {
+        //     alert('No date for this user');
+        // } else {
+        //     let dataNecesara = formatDate(odata);
+        //     console.log('Data este: ' + dataNecesara);
+        // }
+
+        // console.log('--------------------')
+        // console.log('rezultatul aplicat de functie lui d este: ', formatDate(odata));
+
+        //CREATE
+        document.getElementById('save-user').addEventListener('click', function() {
+            let newUsername = document.getElementById('new-user-added').value;
+            let newPassword = document.getElementById('new-user-password-added').value;
+            let newDob = document.getElementById('new-user-dob-added').value;
+            let newUser = {
+                username: newUsername,
+                password: newPassword,
+                dob: newDob
+            };
+
+            console.log('saving new user: ', newUser);
+
+            // { "status" : "unauthorized" ...}
+
+            if (newUsername == '' || newUsername == null) {
+                alert('Username is empty or invalid characters');
+            } else {
+                if (newUsername.match(letters) && newUsername.length > 4) {
+                    fetch('http://localhost:8080/rest/users/save?access_token=' + localStorage.getItem('TOKENUL'), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(newUser),
+                        })
+                        .then(datele => datele.json())
+                        .then(datele => {
+                            console.log('datele dupa save user: ', datele);
+                            //let tbodyusers = document.getElementById('tbody-users-table');
+                            //let html = `<tr><td>${datele.id}</td><td>${datele.username}</td></tr>`;
+                            //tbodyusers.innerHTML += html;
+
+                            document.getElementById('tbody-users-table').innerHTML += User2Tr(datele);
+                            document.getElementById('new-user-added').value = '';
+                            document.getElementById('new-user-password-added').value = '';
+                            document.getElementById('new-user-dob-added').value = '';
+                        })
+                } else {
+                    alert('Invalid characters');
+                }
+
+            }
+        })
+
+
+        function drawUsers(users) {
+            let truri = '';
+            for (let user of users) {
+                truri += User2Tr(user);
+            }
+            let tableBody = document.getElementById('tbody-users-table');
+            console.log('Table body: ', tableBody);
+            tableBody.innerHTML = truri;
+        }
+
+        //GET
+        function getAndDrawAllTheUsers() {
+            fetch('http://localhost:8080/rest/users/all?access_token=' + localStorage.getItem('TOKENUL'))
+                .then(users => users.json())
+                .then(users => {
+                    allTheUsers = users;
+                    console.log('loaded users: ', users);
+                    drawUsers(users);
+                });
+        }
+        getAndDrawAllTheUsers();
+
+        function clickBtnEdit(id) {
+            console.log('editing username with id: ', id);
+            fetch(`http://localhost:8080/rest/users/by-id/${id}?access_token=` + localStorage.getItem('TOKENUL'))
+                .then(datele => datele.json())
+                .then(datele => {
+                    console.log('datele selectate; ', datele);
+                    let selectedId = document.getElementById('user-id');
+                    let selectedUsername = document.getElementById('change-username');
+                    selectedId.value = datele.id;
+                    selectedUsername.value = datele.username;
+                    console.log('user selectat; ', selectedUsername);
+                });
+        }
+
+        function clickBtnDeleteV2(id) {
+            console.log('version 2: ');
+            let singleUser = null;
+            for (let us of allTheUsers) {
+                if (us.id == id) {
+                    singleUser = us;
+                }
+            }
+            let selectedId = document.getElementById('user-id');
+            let selectedUsername = document.getElementById('change-username');
+            selectedId.value = id;
+            selectedUsername.value = singleUser.username;
+        }
+
+        //DELETE
+        function clickBtnDelete(id) {
+            console.log('clicked on btn delete: ', id);
+            var textDialogue = confirm("Are you sure you want to delete this username?");
+            if (textDialogue == false) {
+                return;
+            }
+            fetch(`http://localhost:3000/users/${id}`, {
+                    method: "DELETE",
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).then(datele => datele.json())
+                .then(datele => {
+                    console.log('dupa delete, datele primite de la server sunt: ', datele);
+                    document.getElementById(`rand-${id}`).remove();
+                })
+        }
+
+        //UPDATE
+        document.getElementById('save-user-edit').addEventListener('click', function() {
+            let selectedId = document.getElementById('user-id').value;
+            let selectedUsername = document.getElementById('change-username').value;
+            let selectedUser = {
+                id: selectedId,
+                username: selectedUsername
+            };
+
+            if (selectedUsername == '' || selectedUsername == null) {
+                alert('Empty username..');
+            } else {
+                fetch(`http://localhost:8080/rest/users/update?access_token=` + localStorage.getItem('TOKENUL'), {
+                        method: "PUT",
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(selectedUser),
+                    }).then(datele => datele.json())
+                    .then(datele => {
+                        console.log('Server answer after put method: ', datele);
+                        let corpNouAlUsers = User2Tr(datele);
+                        document.getElementById(`rand-${datele.id}`).innerHTML = corpNouAlUsers;
+                        document.getElementById('user-id').value = '';
+                        document.getElementById('change-username').value = '';
+                    })
+            }
+        })
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h2>Exercitiu</h2>
+
+
+    <script>
+        let adresa = {
+            tara: "Romania",
+            oras: "Bucuresti",
+            strada: "Zece Mese"
+        }
+
+        let persoana1 = {
+            nume: "Jim",
+            adresa: adresa
+        };
+
+        // let persoana2 = {
+        //     nume: "Alice",
+        //     adresa: {
+        //         tara: adresa.tara,
+        //         oras: adresa.oras,
+        //         strada: adresa.strada
+        //     }
+        // };
+        //let persoana2 = {...persoana1}; // in loc de modalitatea asta cu spread de a 'clona' persoana1, ce am putea folosi a.i. si 'adresa' persoanelor sa fie 'deconectata'?
+        // clona imperfecta = shallow copy
+        let persoana2 = JSON.parse(JSON.stringify(persoana1));
+        persoana1.nume = "Jimbo";
+        persoana1.adresa.strada = "Mosilor"; // !!
+
+        console.log(persoana1);
+        console.log(persoana2);
+
+    </script>
+</body>
+
+</html>

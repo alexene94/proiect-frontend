@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <table border = "1">
+        <thead>
+            <th>ID</th>
+            <th>Username</th>
+        </thead>
+        <tbody id="users-body-table"></tbody>
+    </table>
+
+    <button id="next">Next</button>
+    <button id="prev">Previous</button>
+
+    <script>
+        let currentPage = 1;
+        loadCurrentUsersPage();
+        document.getElementById("prev").style.display = "none";
+
+        document.getElementById('next').addEventListener('click', function(){
+            document.getElementById("prev").style.display = "block";
+
+            if(usersIncarcati.length == 0){
+                document.getElementById("next").style.display = "none";
+                console.log('this page is the final page (+1)');
+                return;
+            }
+
+            currentPage++;
+            console.log('click pe next: ', currentPage);
+            loadCurrentUsersPage();
+        })
+
+        document.getElementById('prev').addEventListener('click', function(){
+            document.getElementById("next").style.display = "block";
+
+            if(currentPage == 2){
+                document.getElementById("prev").style.display = "none";
+            }
+            if(currentPage == 1){
+                console.log('first page already loaded, cannot go down with currentPage')
+                return;
+            }
+
+            currentPage--;
+            console.log('click pe prev: ', currentPage);
+            loadCurrentUsersPage();
+        })
+
+        function draw(users){
+            let corpTabel = document.getElementById('users-body-table');
+            let htmlCorpTabel = '';
+            for(let user of users){
+                htmlCorpTabel += `<tr><td>${user.id}</td><td>${user.username}</td></tr>`;
+            }
+            corpTabel.innerHTML = htmlCorpTabel;
+        }
+
+        let usersIncarcati = [];
+        function loadCurrentUsersPage(){
+            fetch('http://localhost:3000/users?_page='+currentPage+'&_limit=5')
+                .then(datele => datele.json())
+                .then(datele => {
+                    usersIncarcati = datele;
+                    draw(datele);
+                })
+        }
+    </script>
+</body>
+</html>

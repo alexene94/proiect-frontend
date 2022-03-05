@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <table border="1">
+        <thead>
+            <th>ID</th>
+            <th>Title</th>
+        </thead>
+        <tbody id="todos-body-tabel">
+
+        </tbody>
+    </table>
+
+    <button id="next">Next</button>
+    <button id="prev">Previous</button>
+
+    <script>
+
+        let currentPage = 1;
+        loadCurrentPage();
+        document.getElementById("prev").style.display = "none";
+
+        document.getElementById('next').addEventListener('click', function(){
+            document.getElementById("prev").style.display = "block";
+
+            if(todosIncarcate.length == 0){
+                document.getElementById("next").style.display = "none";
+                console.log('this page is the final page (+1)');
+                return;
+            }
+
+            currentPage++;
+            console.log('click pe next: ', currentPage);
+            loadCurrentPage()
+
+        })
+        
+        document.getElementById('prev').addEventListener('click', function(){
+            document.getElementById("next").style.display = "block";
+            if(currentPage == 2){
+                document.getElementById("prev").style.display = "none";
+            }
+
+            if(currentPage == 1){
+                console.log('first page already loaded, cannot go down with currentPage')
+                return;
+            }
+            
+            currentPage--;
+            console.log('click pe prev: ', currentPage);
+            loadCurrentPage();
+        })
+
+        function draw(todos){
+            let corpTabel = document.getElementById('todos-body-tabel');
+            let htmlCorpTabel = '';
+            for(let todo of todos){
+                htmlCorpTabel += `<tr><td>${todo.id}</td><td>${todo.title}</td></tr>`;
+            }
+            corpTabel.innerHTML = htmlCorpTabel;
+        }
+
+        let todosIncarcate = [];
+
+        function loadCurrentPage(){
+            fetch('http://localhost:3000/todos?_page='+currentPage+'&_limit=5')
+                .then(datele => datele.json())
+                .then(datele => {
+                    todosIncarcate = datele;
+                    draw(datele);
+                })
+        }
+
+    </script>
+</body>
+</html>

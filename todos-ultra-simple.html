@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <style>
+        .terminat {
+            text-decoration: line-through;
+        }
+        
+        .prA {
+            color: blue;
+        }
+        
+        .prB {
+            color: yellow;
+        }
+        
+        .prC {
+            color: red;
+        }
+    </style>
+</head>
+
+<body class="container">
+
+    <h2>Todos simple, but with spring backend</h2>
+
+    <div>
+
+        <div>
+            <input style="max-width: 40%;" class="form-control" type="text" id="newtodo-title" placeholder="Title">
+        </div>
+        <div>
+            <input style="max-width: 40%;margin-top: 20px;" class="form-control" type="text" id="newtodo-description" placeholder="Description">
+        </div>
+        <div>
+            <input style="max-width: 40%;margin-top: 20px;" class="form-control" id="newtodo-finished" type="checkbox">
+        </div>
+        <div>
+            <!--<input style="max-width: 40%;margin-top: 20px;" type="number" id="newtodo-priority" placeholder="Priority"> -->
+            <select id="newtodo-priority">
+                
+            </select>
+        </div>
+        <div>
+            <!-- <input style="max-width: 40%;margin-top: 20px;" name="select-username" id="newtodo-userAsociat" placeholder="Associated user"> -->
+            <select id="newtodo-userAsociat">
+
+            </select>
+        </div>
+        <div>
+            <button class="btn btn-info" id="save-todo">Save the new todo</button>
+        </div>
+    </div>
+
+    <div style="border: 1px solid black; width: 50%;">
+
+        <h4>Update an existing todo</h4>
+        <input type="hidden" id="todo-id-user-asociat"><br>
+        <input type="hidden" id="todo-id-update"><br>
+        <input type="text" id="todo-title-update" placeholder="Title"><br>
+        <input type="text" id="todo-description-update" placeholder="Description"><br>
+        <input type="checkbox" id="finished-update" placeholder="Finished"><br>
+        <input type="number" id="priority-update" placeholder="Priority"><br>
+        <button id="update-todo">Save changes</button>
+    </div>
+
+
+
+
+    <script>
+        let tokenul = localStorage.getItem('TOKENUL');
+
+        // script pentru utilizatori
+        let userii = [];
+        fetch('http://localhost:8080/rest/users/all?access_token=' + tokenul)
+            .then(users => users.json())
+            .then(users => {
+                console.log('getting all users: ', users);
+                userii = users;
+                let selectPentruUser = document.getElementById('newtodo-userAsociat');
+                let continutPentruSelect = '';
+                for (let user of userii) {
+                    if (user.enabled_user == 0) {
+                        continue;
+                    }
+                    continutPentruSelect += `<option value="${user.id}">${user.username}</option>`;
+                    console.log('IN FOR: ', continutPentruSelect);
+                }
+                console.log('IN AFARA FOR-ului: ', continutPentruSelect);
+                selectPentruUser.innerHTML = continutPentruSelect;
+
+            })
+    </script>
+
+
+
+    <hr>
+    <input type="text" id="filter-title" placeholder="Filtru titlu">
+
+    <select id="filter-priority">
+        
+    </select>
+
+    <script>
+        function filterPriority() {
+            let line = "";
+            let line2 = "<option>" + "All" + "</option>";
+            for (var i = 1; i <= 10; i++) {
+                line += "<option>";
+                line += i;
+                line += "</option>";
+            }
+            document.getElementById("newtodo-priority").innerHTML = line;
+            line2 += line;
+            document.getElementById("filter-priority").innerHTML = line2;
+
+        }
+        filterPriority();
+
+        function filtruText(cuvantTastat, todos) {
+            let todosFiltered = todos.filter(x => x.title.toLowerCase().indexOf(cuvantTastat.toLowerCase()) != -1);
+            return todosFiltered;
+        }
+
+        function filtruPrioritate(valoareSelectata, todos) {
+            console.log('filtru prioritate functie, primeste: ', valoareSelectata);
+            let todosFilteredByPriority = [];
+            if (valoareSelectata.localeCompare("All") == 0) {
+                todosFilteredByPriority = todos;
+            } else {
+                todosFilteredByPriority = todos.filter(x => x.priority == valoareSelectata);
+            }
+            // if (valoareSelectata.localeCompare("Option1") == 0) {
+            //     todosFilteredByPriority = todos;
+            // } else if (valoareSelectata.localeCompare("Option2") == 0) {
+            //     todosFilteredByPriority = todos.filter(x => x.priority >= 1 && x.priority <= 5);
+            // } else if (valoareSelectata.localeCompare("Option3") == 0) {
+            //     todosFilteredByPriority = todos.filter(x => x.priority == 6);
+            // } else if (valoareSelectata.localeCompare("Option4") == 0) {
+            //     todosFilteredByPriority = todos.filter(x => x.priority == 7);
+            // } else if (valoareSelectata.localeCompare("Option5") == 0) {
+            //     todosFilteredByPriority = todos.filter(x => x.priority == 8);
+            // } else if (valoareSelectata.localeCompare("Option6") == 0) {
+            //     todosFilteredByPriority = todos.filter(x => x.priority == 9);
+            // } else if (valoareSelectata.localeCompare("Option7") == 0) {
+            //     todosFilteredByPriority = todos.filter(x => x.priority == 10);
+            // }
+            return todosFilteredByPriority;
+        }
+
+        function clickBtnEdit(id) {
+            console.log('Editing existing todo')
+
+            let singleTodo = null;
+            for (let t of allTodos) {
+                if (t.id == id) {
+                    singleTodo = t;
+                }
+            }
+            console.log('single todo: ', singleTodo);
+            let selectedIdUser = document.getElementById('todo-id-user-asociat');
+            let selectedId = document.getElementById('todo-id-update');
+            let selectedTodo = document.getElementById('todo-title-update');
+            let selectedDescription = document.getElementById('todo-description-update');
+            let selectedFinished = document.getElementById('finished-update');
+            let selectedPriority = document.getElementById('priority-update');
+            if (singleTodo.userAsociat) {
+                selectedIdUser.value = singleTodo.userAsociat.id;
+            }
+            selectedId.value = id;
+            selectedTodo.value = singleTodo.title;
+            selectedDescription.value = singleTodo.description;
+            // selectedFinished.value = singleTodo.finished;
+            selectedPriority.value = singleTodo.priority;
+            document.getElementById("finished-update").checked = singleTodo.finished;
+        }
+
+        document.getElementById('filter-title').addEventListener('keyup', function() {
+            let cuvantTastat = this.value;
+            console.log('s-a intamplat un event: ', cuvantTastat)
+            let todosFiltered = filtruText(cuvantTastat, allTodos);
+
+            let valueSelectataPentruDropdown = document.getElementById('filter-priority').value;
+            console.log('valoare selectata in select dropdown: ', valueSelectataPentruDropdown);
+            todosFiltered = filtruPrioritate(valueSelectataPentruDropdown, todosFiltered);
+            drawTodos(todosFiltered)
+        });
+        document.getElementById('filter-priority').addEventListener('change', function() {
+            let valoareSelectata = this.value;
+            console.log('am selectat: ', valoareSelectata);
+            let todosFilteredByPriority = filtruPrioritate(valoareSelectata, allTodos);
+
+            if (document.getElementById('filter-title').value) {
+                todosFilteredByPriority = filtruText(document.getElementById('filter-title').value, todosFilteredByPriority);
+            }
+            drawTodos(todosFilteredByPriority)
+        });
+    </script>
+    <table class="table table-bordered" style="margin-top: 40px;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Priority</th>
+                <th>Finished</th>
+                <th>Associated user</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tbody-todos">
+
+        </tbody>
+    </table>
+
+    <script>
+        document.getElementById('update-todo').addEventListener('click', function() {
+            let valueFinished = document.getElementById('finished-update').checked;
+            console.log('VF: ', valueFinished);
+            let obiectUpdate = {
+                id: document.getElementById('todo-id-update').value,
+                title: document.getElementById('todo-title-update').value,
+                description: document.getElementById('todo-description-update').value,
+                finished: valueFinished,
+                priority: document.getElementById('priority-update').value
+            };
+            console.log('obiect pentru update: ', obiectUpdate);
+            let selectedIdUser = document.getElementById('todo-id-user-asociat');
+
+
+            fetch('http://localhost:8080/rest/todos/update-fara-id-user', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(obiectUpdate) // sending just a string over the network to the server
+                }).then(datele => datele.json())
+                .then(datele => {
+                    console.log('obiectul updatat: ', datele);
+                    // allTodos.push(obiectUpdate);
+                    // drawTodos(allTodos);
+                    // TODO: redesenam doar randul corespunzator
+                    // TODO: buton Edit
+                    // let todoCareTrebuieInlocuit = null;
+                    let nr = 0;
+                    for (let todoVechi of allTodos) {
+                        if (todoVechi.id == obiectUpdate.id) {
+                            // solutie ok, dar mult de scris => might be a problem in the future
+                            // todoVechi.description = datele.description;
+                            // todoVechi.title = datele.title;
+                            // todoVechi.priority = datele.priority;
+                            // todoVechi.finished = datele.finished;
+                            // todoCareTrebuieInlocuit = todoVechi;
+                            break;
+                        }
+                        nr++;
+                    }
+                    allTodos.splice(nr, 1, datele);
+                    // allTodos.push(datele);
+                    let newBodyToBeIntroduced = drawTodos(allTodos);
+
+                    document.getElementById('todo-id-update').value = '';
+                    document.getElementById('todo-title-update').value = '';
+                    document.getElementById('todo-description-update').value = '';
+                    document.getElementById('priority-update').value = '';
+                })
+        });
+    </script>
+    <script>
+        document.getElementById('save-todo').addEventListener('click', function() {
+            let bodyPentruPost = {
+                "title": document.getElementById('newtodo-title').value,
+                "description": document.getElementById('newtodo-description').value,
+                "finished": document.getElementById('newtodo-finished').checked,
+                "priority": document.getElementById('newtodo-priority').value
+
+            }
+            let descriptionElement = document.getElementById('newtodo-description').value;
+            console.log('sending object: ', bodyPentruPost);
+            if (document.getElementById('newtodo-title').value == '' || document.getElementById('newtodo-title').value == null) {
+                alert('Title of todo is empty');
+                return;
+            }
+            if (document.getElementById('newtodo-description').value == '' || document.getElementById('newtodo-description').value == null) {
+                alert('Description of todo is empty');
+                return;
+            }
+            if (descriptionElement.length < 5) {
+                alert('Description lentgh should be at least 5 characters');
+                return;
+            }
+            // else{
+            fetch('http://localhost:8080/rest/todos/save/' + document.getElementById('newtodo-userAsociat').value, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(bodyPentruPost) // sending just a string over the network to the server
+                })
+                .then(obiectDupaSave => obiectDupaSave.json())
+                .then(obiectDupaSave => {
+                    console.log('server-ul a salvat: ', obiectDupaSave);
+                    allTodos.push(obiectDupaSave);
+                    drawTodos(allTodos);
+                })
+                // }
+        })
+
+
+        function deleteTodo(id) {
+            console.log('deleting todo with id: ', id);
+            var textDialogue = confirm("Are you sure you want to delete this todo?");
+            if (textDialogue == false) {
+                return;
+            }
+            fetch('http://localhost:8080/rest/todos/delete/' + id, {
+                    method: 'DELETE'
+                }).then(obiectSters => obiectSters.json())
+                .then(obiectSters => {
+                    console.log('obiectul sters: ', obiectSters);
+                    allTodos = allTodos.filter(x => x.id !== id);
+                    drawTodos(allTodos);
+                });
+        }
+
+        function drawTodos(todos) {
+            let tbodyContents = '';
+            for (let todo of todos) {
+                let clasaSir = '';
+
+                let prioritateVerificata = '';
+
+                if (todo.priority >= 1 && todo.priority <= 4) {
+                    prioritateVerificata = ' prA';
+                } else if (todo.priority >= 5 && todo.priority <= 7) {
+                    prioritateVerificata = ' prB';
+                } else {
+                    prioritateVerificata = ' prC';
+                }
+                if (todo.finished) {
+                    clasaSir = `class="terminat ${prioritateVerificata}"`;
+                } else {
+                    clasaSir = `class = "${prioritateVerificata}"`;
+                }
+
+                tbodyContents += `<tr>`
+
+                tbodyContents += `<td ${clasaSir}>${todo.id}</td>
+                                <td ${clasaSir}>${todo.title}</td>`;
+
+
+                // let numeUtilizator = '';
+                // if(todo.userAsociat){ // if(todo.userAsociat != null)
+                //     numeUtilizator = todo.userAsociat.username;
+                // }
+                tbodyContents += `<td>${todo.description}</td>
+                                <td>${todo.priority}</td>
+                                <td>${todo.finished}</td>
+                                <td>${todo.userAsociat ? todo.userAsociat.username : ''}</td>
+                                <td><button onclick="clickBtnEdit(${todo.id})">Edit todo</button></td>
+                                <td><button onclick="deleteTodo(${todo.id})">Delete todo</button></td>
+                                </tr>`;
+            }
+            document.getElementById('tbody-todos').innerHTML = tbodyContents;
+        }
+
+        allTodos = [];
+
+        fetch('http://localhost:8080/rest/todos/all?access_token=' + tokenul)
+            .then(todos => todos.json())
+            .then(todos => {
+                console.log('all todos from spring: ', todos);
+                allTodos = todos;
+                drawTodos(allTodos);
+            })
+    </script>
+</body>
+
+</html>

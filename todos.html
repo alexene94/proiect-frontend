@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h2>Todos</h2>
+
+
+    <input type="text" id="search" placeholder="Search for todo">
+
+    <script>
+        document.getElementById('search').addEventListener('keyup', function() {
+            let latestTextSearch = this.value;
+            console.log('tastat: ', latestTextSearch);
+            console.log(allTheTodos);
+            let searchResultTodos = [];
+
+            searchResultTodos = allTheTodos.filter(tds => tds.title.toUpperCase().indexOf(latestTextSearch.toUpperCase()) != -1)
+            console.log('todo-urile cautate sunt: ', searchResultTodos);
+            drawTodos(searchResultTodos);
+        })
+    </script>
+
+    <table id="tableToBeSorted">
+        <thead>
+            <tr>
+                <th data-sort-order="DESC" onclick="sort(this)">Id</th>
+                <th data-sort-order-title="DESC" onclick="sort(this)">Title</th>
+            </tr>
+        </thead>
+        <tbody id="tbody-todos-table">
+
+        </tbody>
+    </table>
+
+    <div style="border: 1px solid black; width: 50%;">
+        <h4>Add a todo</h4>
+        <input type="text" id="new-todo-title" placeholder="Title"><br>
+        <button id="save-todo">Save todo</button>
+    </div>
+
+
+    <div style="border: 1px solid black; width: 50%;">
+
+        <h4>Update an existing todo</h4>
+        <input type="hidden" id="the-id" placeholder="Id"><br>
+        <input type="text" id="change-title" placeholder="Title"><br>
+        <button id="save-edit">Save changes</button>
+    </div>
+
+
+    <script>
+        let allTheTodos = [];
+
+        function compareTodosByIdAsc(a, b) {
+            // if (a.id < b.id) {
+            //     return -1;
+            // }
+            // if (a.id > b.id) {
+            //     return 1;
+            // }
+            // return 0;
+            return a.id - b.id;
+        }
+
+        function compareTodosByIdDesc(a, b) {
+            // if (a.id < b.id) {
+            //     return -1;
+            // }
+            // if (a.id > b.id) {
+            //     return 1;
+            // }
+            // return 0;
+            return b.id - a.id;
+        }
+
+
+        function compareTodosAlphabetically(a, b) {
+            if (a.title.toUpperCase() < b.title.toUpperCase()) {
+                return -1;
+            }
+            if (a.title.toUpperCase() > b.title.toUpperCase()) {
+                return 1;
+            }
+            return 0;
+        }
+
+        function compareTodosReverseOrder(b, a) {
+            if (a.title.toUpperCase() < b.title.toUpperCase()) {
+                return -1;
+            }
+            if (a.title.toUpperCase() > b.title.toUpperCase()) {
+                return 1;
+            }
+            return 0;
+        }
+
+        function sort(param) {
+            console.log('param: ', param)
+            let theCriterion = param.innerHTML;
+            console.log('the criterion: ', theCriterion);
+            if (theCriterion == 'Id') {
+
+                let order = param.getAttribute('data-sort-order');
+                if (order == 'DESC') {
+                    allTheTodos.sort(compareTodosByIdDesc);
+                    order = 'ASC';
+                } else if (order == 'ASC') {
+                    allTheTodos.sort(compareTodosByIdAsc);
+                    order = 'DESC';
+                }
+                param.setAttribute('data-sort-order', order);
+            } else {
+                if (theCriterion == "Title") {
+                    let order2 = param.getAttribute('data-sort-order-title');
+                    if (order2 == 'DESC') {
+                        allTheTodos.sort(compareTodosReverseOrder);
+                        order2 = 'ASC';
+                    } else if (order2 == 'ASC') {
+                        allTheTodos.sort(compareTodosAlphabetically);
+                        order2 = 'DESC';
+                    }
+                    param.setAttribute('data-sort-order-title', order2);
+                }
+            }
+            console.log('all the todos sorted: ', allTheTodos);
+            drawTodos(allTheTodos);
+        }
+
+
+        function clickedOnFinishedCheckbox(inputCheckbox, id) {
+            console.log('id of todo that should be updated: ', id);
+            console.log('all the todos: ', allTheTodos);
+            console.log('clicked: ', inputCheckbox);
+            if (inputCheckbox.checked) {
+                console.log('click on')
+            } else {
+                console.log('click off')
+            }
+
+            let todoToUpdate = null;
+            for (let todo of allTheTodos) {
+                if (todo.id == id) {
+                    todoToUpdate = todo;
+                    break;
+                }
+            }
+            todoToUpdate.finished = inputCheckbox.checked;
+            console.log('todo de updatat: ', todoToUpdate);
+
+            fetch(`http://localhost:3000/todos/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(todoToUpdate) // obiect -> server (full - remote)
+                }).then(rezultat => rezultat.json())
+                .then(rezultat => {
+                    console.log('rezultat: ', rezultat);
+                })
+
+        }
+
+        function todo2Tr(todo) {
+            // console.log('todo 2 tr test');
+            return `<tr id="rand-${todo.id}"> 
+                <td><input onclick="clickedOnFinishedCheckbox(this, ${todo.id})" type="checkbox" ${todo.finished ? 'checked' : ''}> ${todo.id}</td>
+                <td>${todo.title}</td>
+                <td>
+                    <button onclick="clickBtnDelete(${todo.id})">Delete</button>
+                    <button onclick="clickBtnEditV2(${todo.id})">Edit</button>
+                </td>
+                </tr>`;
+        }
+
+
+        document.getElementById('save-todo').addEventListener('click', function() {
+
+            let textTitle = document.getElementById('new-todo-title').value;
+            let newTodo = {
+                title: textTitle
+            };
+
+            fetch('http://localhost:3000/todos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newTodo),
+                })
+                .then(datele => datele.json())
+                .then(datele => {
+                    console.log('datele dupa save todo: ', datele);
+                    // let tbodyTodos = document.getElementById('tbody-todos-table');
+                    // let html = `<tr><td>${datele.id}</td><td>${datele.title}</td></tr>`;
+                    // tbodyTodos.innerHTML += html;
+
+                    document.getElementById('tbody-todos-table').innerHTML += todo2Tr(datele); // `<tr><td>${datele.id}</td><td>${datele.title}</td><td><button onclick="clickBtnDelete(${datele.id})">Delete</button><button>Edit</button></td></tr>`;
+                    document.getElementById('new-todo-title').value = '';
+                })
+        })
+
+
+
+
+        function drawTodos(todos) {
+            let truri = '';
+            for (let todo of todos) {
+                truri += todo2Tr(todo); // `<tr id="rand-${todo.id}"><td><input type="checkbox">${todo.id}</td><td>${todo.title}</td><td><button onclick="clickBtnDelete(${todo.id})">Delete</button><button onclick="clickBtnEdit(${todo.id})">Edit</button></td></tr>`;
+            }
+            let tabelBody = document.getElementById('tbody-todos-table');
+            console.log('tabelBody: ', tabelBody);
+            tabelBody.innerHTML = truri;
+        }
+
+        // GET
+        function getAndDrawAllTodos() {
+            fetch('http://localhost:3000/todos')
+                .then(todos => todos.json())
+                .then(todos => {
+                    allTheTodos = todos;
+                    console.log('loaded todos: ', todos);
+                    drawTodos(todos);
+                });
+        }
+        getAndDrawAllTodos();
+
+        function clickBtnEditV2(id) {
+            console.log('versiunea 2')
+
+            let unTodo = null;
+            for (let t of allTheTodos) {
+                if (t.id == id) {
+                    unTodo = t;
+                }
+            }
+            // update formular
+            let selectedId = document.getElementById('the-id');
+            let selectedTodo = document.getElementById('change-title');
+            selectedId.value = id;
+            selectedTodo.value = unTodo.title;
+            // end update formular
+        }
+
+        function clickBtnEdit(id) {
+            console.log('editing todo with id: ', id);
+            fetch(`http://localhost:3000/todos/${id}`)
+                .then(datele => datele.json())
+                .then(datele => {
+                    console.log('datele selectate: ', datele);
+                    let selectedId = document.getElementById('the-id');
+                    let selectedTodo = document.getElementById('change-title');
+                    selectedId.value = datele.id;
+                    selectedTodo.value = datele.title;
+                    console.log('todo selectat: ', selectedTodo);
+
+                })
+        }
+
+        function clickBtnDelete(id) {
+            console.log('clicked on btn delete: ', id);
+            // return;
+            var textDialogue = confirm("Are you sure you want to delete this todo?");
+            if (textDialogue == false) {
+                return;
+            }
+            fetch(`http://localhost:3000/todos/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).then(datele => datele.json())
+                .then(datele => {
+                    console.log('dupa delete datele primite de la server sunt: ', datele);
+                    // document.getElementById(`rand-${id}`).style.display = 'none';
+                    document.getElementById(`rand-${id}`).remove();
+                })
+
+        }
+
+        //UPDATE
+        document.getElementById('save-edit').addEventListener('click', function() {
+            let selectedId = document.getElementById('the-id').value
+            let selectedTitle = document.getElementById('change-title').value;
+            let selectedTodo = {
+                id: selectedId,
+                title: selectedTitle
+            };
+
+
+            fetch(`http://localhost:3000/todos/${selectedId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(selectedTodo),
+                }).then(datele => datele.json())
+                .then(datele => {
+                    console.log('Server answer after put method: ', datele);
+
+                    // **bug**: moving edited elements at the last position
+                    // document.getElementById(`rand-${datele.id}`).remove();
+                    // let randNou = `<tr id="rand-${datele.id}"><td>${datele.id}</td><td>${datele.title}</td><td><button onclick="clickBtnDelete(${datele.id})">Delete</button><button>Edit</button></td></tr>`;
+                    // document.getElementById('tbody-todos-table').innerHTML += randNou;
+                    let corpNouRandVechi = todo2Tr(datele); // `<td>${datele.id}</td><td>${datele.title}</td><td><button onclick="clickBtnDelete(${datele.id})">Delete</button><button>Edit</button></td>`;
+                    document.getElementById(`rand-${datele.id}`).innerHTML = corpNouRandVechi;
+                    document.getElementById('the-id').value = '';
+                    document.getElementById('change-title').value = '';
+                })
+        })
+    </script>
+
+
+    <script>
+        // script test
+        // let produs = {nume : 'xbox', pret : 200};
+        // let produsStringified = JSON.stringify(produs);
+        // console.log(produs.nume);
+        // console.log('produs: ', produs);
+        // console.log(produsStringified);
+
+        let adresa = {
+            tara: "Romania",
+            oras: "Bucuresti",
+            strada: "Zece Mese"
+        }
+
+        let persoana1 = {
+            nume: "Jim",
+            adresa: adresa
+        };
+
+        let persoana2 = {
+            nume: "Alice",
+            adresa: {
+                tara: adresa.tara,
+                oras: adresa.oras,
+                strada: adresa.strada
+            }
+        };
+
+        persoana2.adresa.strada = "Obor";
+
+
+        console.log(persoana1);
+        console.log(persoana2);
+
+        let produs = {
+            nume: 'xbox',
+            pret: 200
+        };
+        // solutie ok dar ineficienta (mult de scris, orice field din produs trebuie 'reprodus' in produs2)
+        // let produs2 = {nume : 'xbox',
+        //                pret : produs.pret
+        //             }
+        // let produs2 = JSON.stringify(produs);  // json - string
+        // produs2 = JSON.parse(produs2); // string --- parse ---> json
+
+        let produs2 = {...produs
+        }; // spread operator
+        produs.pret = 400;
+
+
+        console.log(produs);
+        console.log(produs2);
+    </script>
+</body>
+
+</html>

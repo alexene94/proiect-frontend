@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h2>Login page</h2>
+
+    <div>
+        <input type="text" placeholder="Username" id="username-input">
+        <br>
+        <input id="password-input" type="password" placeholder="Password">
+        <br>
+        <button onclick="login()">Login</button>
+    </div>
+
+    <script>
+        function login() {
+            let username = document.getElementById('username-input').value;
+            let password = document.getElementById('password-input').value;
+
+
+            let details = {
+                username: username,
+                password: password,
+                grant_type: 'password',
+                client_id: 'my-client'
+            };
+
+            let formBody = [];
+            for (let property in details) {
+                let encodedKey = encodeURIComponent(property);
+                let encodedValue = encodeURIComponent(details[property]);
+                formBody.push(encodedKey + "=" + encodedValue);
+            }
+            formBody = formBody.join("&");
+
+
+            fetch('http://localhost:8080/oauth/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
+                        'Authorization': 'Basic ' + btoa("my-client:my-secret")
+                    },
+                    body: formBody,
+                }).then(dateleServer => dateleServer.json())
+                .then(datele => {
+                    console.log('datele server login: ', datele);
+                    console.log('doar token-ul: ', datele.access_token);
+                    localStorage.setItem('TOKENUL', datele.access_token);
+                });
+
+        }
+    </script>
+
+</body>
+
+</html>
